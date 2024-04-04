@@ -3,11 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
-	// Uncomment this block to pass the first stage!
-	// "os"
 )
 
-// Usage: your_git.sh <command> <arg1> <arg2> ...
 func main() {
 	if len(os.Args) < 2 {
 		handleError("usage: mygit <command> [<args>...]\n", "")
@@ -20,6 +17,19 @@ func main() {
 		initRepo()
 	case "cat-file":
 		catFile(os.Args[3])
+	case "hash-object":
+		fileToHash := ""
+		writeFlag := false
+		if len(os.Args) > 2 {
+			writeFlag = os.Args[2] == "-w"
+			if writeFlag && len(os.Args) > 3 {
+				fileToHash = os.Args[3]
+			} else {
+				fileToHash = os.Args[2]
+			}
+		}
+		hashObject(fileToHash, writeFlag)
+
 	default:
 		handleError("Unknown command %s\n", command)
 	}

@@ -7,9 +7,9 @@ import (
 
 const (
 	GitDir       = ".git"
-	ObjectsDir   = ".git/objects"
-	RefsDir      = ".git/refs"
-	HeadFilePath = ".git/HEAD"
+	ObjectsDir   = GitDir + "/objects"
+	RefsDir      = GitDir + "/refs"
+	HeadFilePath = GitDir + "/HEAD"
 )
 
 func initRepo() {
