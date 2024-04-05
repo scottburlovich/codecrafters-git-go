@@ -2,55 +2,23 @@ package main
 
 import (
 	"bytes"
-	"compress/zlib"
-	"crypto/sha1"
 	"fmt"
 	"io"
 	"os"
 )
 
 func readBlob(hash string) ([]byte, error) {
-	return os.ReadFile(fmt.Sprintf(ObjectsDir+"/%s/%s", hash[:2], hash[2:]))
+	return readFile(fmt.Sprintf(ObjectsDir+"/%s/%s", hash[:2], hash[2:]))
 }
 
 func writeBlob(dir, zBlobHashSum string, compressedBlob []byte) error {
-	return os.WriteFile(fmt.Sprintf(dir+"/%s", zBlobHashSum[2:]), compressedBlob, 0644)
-}
-
-func compressBlob(blob []byte) ([]byte, error) {
-	var buf bytes.Buffer
-	w := zlib.NewWriter(&buf)
-	if _, err := w.Write(blob); err != nil {
-		return nil, err
-	}
-	if err := w.Close(); err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
-}
-
-func decompressBlob(blob []byte) (io.ReadCloser, error) {
-	return zlib.NewReader(bytes.NewReader(blob))
+	return writeFile(fmt.Sprintf(dir+"/%s", zBlobHashSum[2:]), compressedBlob)
 }
 
 func computeBlobHash(fileContents []byte) ([]byte, string) {
 	zBlob := fmt.Sprintf("blob %d\x00%s", len(fileContents), string(fileContents))
-	zBlobHash := sha1.New()
-	zBlobHash.Write([]byte(zBlob))
-	zBlobHashSum := zBlobHash.Sum(nil)
+	zBlobHashSum := hashBytes([]byte(zBlob))
 	return []byte(zBlob), fmt.Sprintf("%x", zBlobHashSum)
-}
-
-func readAndDecompressBlob(hash string) io.ReadCloser {
-	blob, err := readBlob(hash)
-	if err != nil {
-		handleError("Error reading file: %s\n", err)
-	}
-	zBlob, err := decompressBlob(blob)
-	if err != nil {
-		handleError("Error decompressing file: %s\n", err)
-	}
-	return zBlob
 }
 
 func readFileContentsFromDecompressedBlob(zBlob io.ReadCloser) []byte {
@@ -71,7 +39,7 @@ func hashObject(file string, write bool) {
 	zBlob, zBlobHashSum := computeBlobHash(fileContents)
 
 	if write {
-		compressedBlob, err := compressBlob(zBlob)
+		compressedBlob, err := compressBytes(zBlob)
 		if err != nil {
 			handleError("Error compressing file: %s\n", err)
 		}
@@ -88,4 +56,13 @@ func hashObject(file string, write bool) {
 	}
 
 	fmt.Printf("%s\n", zBlobHashSum)
+}
+
+func createObjectDirectory(zBlobHashSum string) (string, error) {
+	objectDir := fmt.Sprintf(ObjectsDir+"/%s", zBlobHashSum[:2])
+	err := os.MkdirAll(objectDir, 0755)
+	if err != nil {
+		return "", err
+	}
+	return objectDir, nil
 }
