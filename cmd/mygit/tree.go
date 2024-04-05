@@ -46,9 +46,9 @@ func lsTree(hash string, nameOnly bool) {
 		tree = tree[nullByteSeparator+21:]
 
 		if nameOnly {
-			println(t.name)
+			fmt.Println(t.name)
 		} else {
-			println(t.mode, t.objType, t.hash, "  ", t.name)
+			fmt.Println(t.mode, t.objType, t.hash, "  ", t.name)
 		}
 	}
 }
