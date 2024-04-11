@@ -1,4 +1,4 @@
-package config
+package lib
 
 // Git directory structure
 const (
@@ -17,4 +17,10 @@ const (
 	ModeTree     = "40000"
 	ModeBlobExec = "100755"
 	ModeSymLink  = "120000"
+)
+
+// Default author information
+const (
+	DefaultAuthor      = "MyGit User"
+	DefaultAuthorEmail = "mygit@example.com"
 )

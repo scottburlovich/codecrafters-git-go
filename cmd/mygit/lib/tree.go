@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/codecrafters-io/git-starter-go/cmd/mygit/config"
 	"io"
 	"os"
 	"path/filepath"
@@ -33,7 +32,7 @@ func TraverseTree(path string) ([]byte, error) {
 	var treeEntries [][]byte
 	for _, t := range treeContent {
 		var modeStr string
-		if t.mode == config.ModeBlob {
+		if t.mode == ModeBlob {
 			modeStr = fmt.Sprintf("%06s", t.mode)
 		} else {
 			modeStr = fmt.Sprintf("%05s", t.mode)
@@ -86,16 +85,16 @@ func categorizeAndHandleEntry(path string, entry os.DirEntry) (string, string, [
 	if entry.Type().IsDir() {
 		newPath := filepath.Join(path, entry.Name())
 		hash, err := TraverseTree(newPath)
-		return config.ModeTree, config.Tree, hash, err
+		return ModeTree, Tree, hash, err
 	}
 
 	var mode, objType string
 	if (modePerm & 0111) != 0 {
-		mode = config.ModeBlobExec
-		objType = config.Blob
+		mode = ModeBlobExec
+		objType = Blob
 	} else {
-		mode = config.ModeBlob
-		objType = config.Blob
+		mode = ModeBlob
+		objType = Blob
 	}
 	hash, err := processBlob(path, entry.Name())
 
@@ -140,10 +139,10 @@ func extractTreeData(tree []byte) (TreeObj, []byte) {
 
 func getModes() map[string]string {
 	return map[string]string{
-		config.ModeBlob:     config.Blob,
-		config.ModeTree:     config.Tree,
-		config.ModeBlobExec: config.Blob,
-		config.ModeSymLink:  config.Blob,
+		ModeBlob:     Blob,
+		ModeTree:     Tree,
+		ModeBlobExec: Blob,
+		ModeSymLink:  Blob,
 	}
 }
 

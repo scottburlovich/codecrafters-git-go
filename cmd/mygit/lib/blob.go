@@ -3,9 +3,7 @@ package lib
 import (
 	"bytes"
 	"fmt"
-	"github.com/codecrafters-io/git-starter-go/cmd/mygit/config"
 	"io"
-	"os"
 )
 
 func CreateBlob(fileContents []byte) []byte {
@@ -15,7 +13,7 @@ func CreateBlob(fileContents []byte) []byte {
 }
 
 func ReadBlob(hash string) ([]byte, error) {
-	return ReadFile(fmt.Sprintf(config.ObjectsDir+"/%s/%s", hash[:2], hash[2:]))
+	return ReadFile(fmt.Sprintf(ObjectsDir+"/%s/%s", hash[:2], hash[2:]))
 }
 
 func ReadFileContentsFromDecompressedBlob(zBlob io.ReadCloser) []byte {
@@ -25,15 +23,4 @@ func ReadFileContentsFromDecompressedBlob(zBlob io.ReadCloser) []byte {
 	}
 
 	return bytes.SplitN(buf.Bytes(), []byte("\x00"), 2)[1]
-}
-
-func CreateObjectDirectory(hashSum []byte) (string, error) {
-	hashString := fmt.Sprintf("%x", hashSum)
-	objectDir := fmt.Sprintf(config.ObjectsDir+"/%s", hashString[:2])
-	err := os.MkdirAll(objectDir, 0755)
-	if err != nil {
-		return "", err
-	}
-
-	return objectDir, nil
 }

@@ -40,3 +40,14 @@ func WriteObject(obj []byte) ([]byte, error) {
 
 	return objHashSum, nil
 }
+
+func CreateObjectDirectory(hashSum []byte) (string, error) {
+	hashString := fmt.Sprintf("%x", hashSum)
+	objectDir := fmt.Sprintf(ObjectsDir+"/%s", hashString[:2])
+	err := os.MkdirAll(objectDir, 0755)
+	if err != nil {
+		return "", err
+	}
+
+	return objectDir, nil
+}
