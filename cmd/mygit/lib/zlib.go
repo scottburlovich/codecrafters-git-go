@@ -1,4 +1,4 @@
-package main
+package lib
 
 import (
 	"bytes"
@@ -22,20 +22,20 @@ func decompressBytes(byteSlice []byte) (io.ReadCloser, error) {
 	return zlib.NewReader(bytes.NewReader(byteSlice))
 }
 
-func readAndDecompressBlob(hash string) io.ReadCloser {
-	blob, err := readBlob(hash)
+func ReadAndDecompressBlob(hash string) io.ReadCloser {
+	blob, err := ReadBlob(hash)
 	if err != nil {
-		handleError("Error reading file: %s\n", err)
+		HandleError("Error reading file: %s\n", err)
 	}
 	zBlob, err := decompressBytes(blob)
 	if err != nil {
-		handleError("Error decompressing file: %s\n", err)
+		HandleError("Error decompressing file: %s\n", err)
 	}
 	return zBlob
 }
 
-func readAndDecompressFile(file string) (io.ReadCloser, error) {
-	compressedFile, err := readFile(file)
+func ReadAndDecompressFile(file string) (io.ReadCloser, error) {
+	compressedFile, err := ReadFile(file)
 	if err != nil {
 		return nil, err
 	}
@@ -48,11 +48,11 @@ func readAndDecompressFile(file string) (io.ReadCloser, error) {
 	return decompressedFile, nil
 }
 
-func compressAndWriteFile(file string, data []byte) error {
+func CompressAndWriteFile(file string, data []byte) error {
 	compressedData, err := compressBytes(data)
 	if err != nil {
 		return err
 	}
 
-	return writeFile(file, compressedData)
+	return WriteFile(file, compressedData)
 }

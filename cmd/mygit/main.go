@@ -1,13 +1,13 @@
 package main
 
 import (
-	"fmt"
+	"github.com/codecrafters-io/git-starter-go/cmd/mygit/lib"
 	"os"
 )
 
 func main() {
 	if len(os.Args) < 2 {
-		handleError("usage: mygit <command> [<args>...]\n", "")
+		lib.HandleError("usage: mygit <command> [<args>...]\n", "")
 	}
 	command := os.Args[1]
 	switch command {
@@ -19,8 +19,10 @@ func main() {
 		handleHashObjectCommand()
 	case "ls-tree":
 		handleLsTreeCommand()
+	case "write-tree":
+		handleWriteTreeCommand()
 	default:
-		handleError("Unknown command %s\n", command)
+		lib.HandleError("Unknown command %s\n", command)
 	}
 }
 
@@ -62,7 +64,6 @@ func handleLsTreeCommand() {
 	lsTree(hash, nameOnly)
 }
 
-func handleError(format string, a ...interface{}) {
-	fmt.Fprintf(os.Stderr, format, a...)
-	os.Exit(1)
+func handleWriteTreeCommand() {
+	writeTree(".")
 }
