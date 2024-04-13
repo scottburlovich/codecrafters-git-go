@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/codecrafters-io/git-starter-go/cmd/mygit/handlers"
 	"os"
 	"strconv"
 	"strings"
@@ -9,7 +10,6 @@ import (
 
 type commandArgs struct {
 	Args         map[string]bool
-	TotalArgs    int
 	ExpectedArgs []string
 	OptionalArgs []string
 	HandlerFunc  func(map[string]string)
@@ -18,104 +18,109 @@ type commandArgs struct {
 var commandsMap = map[string]commandArgs{
 	"init": {
 		Args:         map[string]bool{},
-		TotalArgs:    0,
 		ExpectedArgs: []string{},
 		OptionalArgs: []string{},
-		HandlerFunc:  initRepo,
+		HandlerFunc:  handlers.InitRepo,
 	},
 	"cat-file": {
 		Args: map[string]bool{
 			"-p": false,
 		},
-		TotalArgs:    2,
 		ExpectedArgs: []string{"arg1", "-p"},
 		OptionalArgs: []string{},
-		HandlerFunc:  catFile,
+		HandlerFunc:  handlers.CatFile,
 	},
 	"hash-object": {
 		Args: map[string]bool{
 			"-w": false,
 		},
-		TotalArgs:    1,
 		ExpectedArgs: []string{"arg1"},
 		OptionalArgs: []string{"-w"},
-		HandlerFunc:  hashObject,
+		HandlerFunc:  handlers.HashObject,
 	},
 	"ls-tree": {
 		Args: map[string]bool{
 			"--name-only": false,
 		},
-		TotalArgs:    1,
 		ExpectedArgs: []string{"arg1"},
 		OptionalArgs: []string{"--name-only"},
-		HandlerFunc:  lsTree,
+		HandlerFunc:  handlers.LsTree,
 	},
 	"write-tree": {
 		Args:         map[string]bool{},
-		TotalArgs:    0,
 		ExpectedArgs: []string{},
 		OptionalArgs: []string{},
-		HandlerFunc:  writeTree,
+		HandlerFunc:  handlers.WriteTree,
 	},
 	"commit-tree": {
 		Args: map[string]bool{
 			"-m": true,
 			"-p": true,
 		},
-		TotalArgs:    1,
 		ExpectedArgs: []string{"arg1"},
 		OptionalArgs: []string{"-p", "-m"},
-		HandlerFunc:  commitTree,
+		HandlerFunc:  handlers.CommitTree,
+	},
+	"clone": {
+		Args:         map[string]bool{},
+		ExpectedArgs: []string{"arg1", "arg2"},
+		OptionalArgs: []string{"arg2"},
+		HandlerFunc:  handlers.CloneRepository,
 	},
 }
 
 func getArgs(cmd string, args []string) map[string]string {
 	argMap := make(map[string]string)
+	posArgCount := 1
+
 	cmdArgsMap := commandsMap[cmd].Args
 	expectedArgs := commandsMap[cmd].ExpectedArgs
 	optionalArgs := commandsMap[cmd].OptionalArgs
+
 	for i := 0; i < len(args); i++ {
-		if strings.HasPrefix(args[i], "-") {
-			arg := args[i]
-			if _, ok := cmdArgsMap[arg]; ok || contains(optionalArgs, arg) {
-				if cmdArgsMap[arg] {
-					if i+1 < len(args) && !strings.HasPrefix(args[i+1], "-") {
-						argMap[arg] = args[i+1]
-						i++
-					} else {
-						fmt.Printf("Value expected for argument %s\n", arg)
-					}
+		arg := args[i]
+
+		if strings.HasPrefix(arg, "-") {
+			expectsVal, isArg := cmdArgsMap[arg]
+
+			if isArg {
+				if expectsVal && i+1 < len(args) && !strings.HasPrefix(args[i+1], "-") {
+					argMap[arg] = args[i+1]
+					i++
 				} else {
 					argMap[arg] = ""
-					expectedArgs = remove(expectedArgs, arg)
 				}
+			} else {
+				fmt.Printf("Unknown argument: %v\n", arg)
+				os.Exit(1)
 			}
-		} else if len(expectedArgs) > 0 {
-			argMap["arg"+strconv.Itoa(len(expectedArgs))] = args[i]
-			expectedArgs = expectedArgs[1:]
+		} else {
+			if posArgCount > len(expectedArgs) {
+				fmt.Printf("Unexpected argument: %v\n", arg)
+				os.Exit(1)
+			}
+
+			argMap["arg"+strconv.Itoa(posArgCount)] = arg
+			posArgCount++
 		}
 	}
 
-	if len(expectedArgs) > 0 {
-		fmt.Printf("Required argument(s) missing: %v\n", expectedArgs)
-		os.Exit(1)
+	for _, expectedArg := range expectedArgs {
+		if _, ok := argMap[expectedArg]; !ok {
+			// Only error out if the missing argument is not optional
+			if !contains(optionalArgs, expectedArg) {
+				fmt.Printf("Required argument missing: %s\n", expectedArg)
+				os.Exit(1)
+			}
+		}
 	}
 
 	return argMap
 }
 
-func remove(s []string, r string) []string {
-	for i, v := range s {
-		if v == r {
-			return append(s[:i], s[i+1:]...)
-		}
-	}
-	return s
-}
-
-func contains(s []string, e string) bool {
-	for _, a := range s {
-		if a == e {
+func contains(slice []string, item string) bool {
+	for _, a := range slice {
+		if a == item {
 			return true
 		}
 	}

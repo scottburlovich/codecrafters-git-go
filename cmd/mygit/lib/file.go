@@ -1,7 +1,9 @@
 package lib
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 )
@@ -15,15 +17,12 @@ func WriteFile(file string, data []byte) error {
 }
 
 func WriteObject(obj []byte) ([]byte, error) {
-	objHashSum, err := HashBytes(obj)
-	if err != nil {
-		HandleError("Error hashing object: %s\n", err)
-	}
-
 	zObj, err := compressBytes(obj)
 	if err != nil {
 		HandleError("Error compressing object: %s\n", err)
 	}
+
+	objHashSum := HashBytes(obj)
 
 	objectDir, err := CreateObjectDirectory(objHashSum)
 	if err != nil {
@@ -41,6 +40,15 @@ func WriteObject(obj []byte) ([]byte, error) {
 	return objHashSum, nil
 }
 
+func WriteObjectWithType(obj []byte, objType string) ([]byte, error) {
+	buf := bytes.Buffer{}
+	fmt.Fprintf(&buf, "%s %d", objType, len(obj))
+	buf.WriteByte(0)
+	buf.Write(obj)
+
+	return WriteObject(buf.Bytes())
+}
+
 func CreateObjectDirectory(hashSum []byte) (string, error) {
 	hashString := fmt.Sprintf("%x", hashSum)
 	objectDir := fmt.Sprintf(ObjectsDir+"/%s", hashString[:2])
@@ -50,4 +58,62 @@ func CreateObjectDirectory(hashSum []byte) (string, error) {
 	}
 
 	return objectDir, nil
+}
+
+func ObjectFileExists(hashString string) bool {
+	objectPath := filepath.Join(ObjectsDir, hashString[:2], hashString[2:])
+	_, err := os.Stat(objectPath)
+	return !os.IsNotExist(err)
+}
+
+func ReadObjectFile(hashString string) ([]byte, string, int, error) {
+	objectPath := filepath.Join(ObjectsDir, hashString[:2], hashString[2:])
+	zObj, err := ReadFile(objectPath)
+	if err != nil {
+		return nil, "", 0, err
+	}
+	obj, err := decompressBytes(zObj)
+	if err != nil {
+		return nil, "", 0, err
+	}
+
+	objData, err := io.ReadAll(obj)
+	if err != nil {
+		return nil, "", 0, err
+	}
+
+	byteIndex := bytes.IndexByte(objData, 0)
+	var objType string
+	var objSize int
+
+	fmt.Sscanf(string(objData[:byteIndex]), "%s %d", &objType, &objSize)
+	if byteIndex+objSize+1 != len(objData) {
+		return nil, "", 0, fmt.Errorf("invalid object size")
+	}
+
+	return objData[byteIndex+1:], objType, objSize, nil
+}
+
+func InitRepository(path string) error {
+	err := os.Chdir(path)
+	if err != nil {
+		return fmt.Errorf("error changing directory: %s\n", err)
+	}
+
+	for _, dir := range []string{GitDir, ObjectsDir, RefsDir} {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return fmt.Errorf("error creating directory: %s\n", err)
+		}
+	}
+
+	headFileContents := []byte("ref: refs/heads/main\n")
+	if err := os.WriteFile(HeadFilePath, headFileContents, 0644); err != nil {
+		return fmt.Errorf("error writing file: %s\n", err)
+	}
+
+	return nil
+}
+
+func SplitDirFile(hex string) (string, string) {
+	return hex[:2], hex[2:]
 }

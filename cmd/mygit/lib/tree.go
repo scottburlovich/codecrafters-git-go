@@ -108,10 +108,7 @@ func processBlob(path, name string) ([]byte, error) {
 	}
 
 	blob := CreateBlob(fileContents)
-	blobHash, err := HashBytes(blob)
-	if err != nil {
-		return nil, err
-	}
+	blobHash := HashBytes(blob)
 
 	return blobHash, nil
 }
@@ -122,6 +119,22 @@ func ReadTree(tree []byte, nameOnly bool) {
 		tree = remainingTree
 		displayTreeData(t, nameOnly)
 	}
+}
+
+func ReadTreeObjectFile(hash string) ([]*TreeObj, error) {
+	obj, _, _, err := ReadObjectFile(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	var treeObjs []*TreeObj
+	for len(obj) > 0 {
+		t, remainingTree := extractTreeData(obj)
+		obj = remainingTree
+		treeObjs = append(treeObjs, &t)
+	}
+
+	return treeObjs, nil
 }
 
 func extractTreeData(tree []byte) (TreeObj, []byte) {

@@ -1,4 +1,4 @@
-package main
+package handlers
 
 import (
 	"encoding/hex"
@@ -8,20 +8,15 @@ import (
 	"path/filepath"
 )
 
-func initRepo(args map[string]string) {
-	for _, dir := range []string{lib.GitDir, lib.ObjectsDir, lib.RefsDir} {
-		if err := os.MkdirAll(dir, 0755); err != nil {
-			lib.HandleError("Error creating directory: %s\n", err)
-		}
+func InitRepo(args map[string]string) {
+	err := lib.InitRepository(".")
+	if err != nil {
+		lib.HandleError("Error initializing git repository: %s\n", err)
 	}
-	headFileContents := []byte("ref: refs/heads/main\n")
-	if err := os.WriteFile(lib.HeadFilePath, headFileContents, 0644); err != nil {
-		lib.HandleError("Error writing file: %s\n", err)
-	}
-	fmt.Println("Initialized git directory")
+	fmt.Println("Initialized git repository")
 }
 
-func catFile(args map[string]string) {
+func CatFile(args map[string]string) {
 	hash := args["arg1"]
 	_, prettyPrint := args["-p"]
 
@@ -39,7 +34,7 @@ func catFile(args map[string]string) {
 	}
 }
 
-func commitTree(args map[string]string) {
+func CommitTree(args map[string]string) {
 	tree := args["arg1"]
 	parent, hasParent := args["-p"]
 	message := args["-m"]
@@ -61,10 +56,7 @@ func commitTree(args map[string]string) {
 	authorEmail := lib.DefaultAuthorEmail
 
 	commit := lib.CreateCommit(treeHash, parentHash, message, author, authorEmail)
-	commitHash, err := lib.HashBytes(commit)
-	if err != nil {
-		lib.HandleError("Error hashing commit: %s\n", err)
-	}
+	commitHash := lib.HashBytes(commit)
 
 	_, err = lib.WriteObject(commit)
 	if err != nil {
@@ -74,7 +66,7 @@ func commitTree(args map[string]string) {
 	fmt.Printf("%x\n", commitHash)
 }
 
-func hashObject(args map[string]string) {
+func HashObject(args map[string]string) {
 	file := args["arg1"]
 	_, write := args["-w"]
 
@@ -84,10 +76,7 @@ func hashObject(args map[string]string) {
 	}
 
 	blob := lib.CreateBlob(fileContents)
-	blobHashSum, err := lib.HashBytes(blob)
-	if err != nil {
-		lib.HandleError("Error hashing blob: %s\n", err)
-	}
+	blobHashSum := lib.HashBytes(blob)
 
 	if write {
 		_, err = lib.WriteObject(blob)
@@ -99,7 +88,7 @@ func hashObject(args map[string]string) {
 	fmt.Printf("%x\n", blobHashSum)
 }
 
-func lsTree(args map[string]string) {
+func LsTree(args map[string]string) {
 	hash := args["arg1"]
 	_, nameOnly := args["--name-only"]
 	path := filepath.Join(lib.ObjectsDir, hash[:2], hash[2:])
@@ -111,10 +100,28 @@ func lsTree(args map[string]string) {
 	lib.ReadTree(tree, nameOnly)
 }
 
-func writeTree(args map[string]string) {
+func WriteTree(args map[string]string) {
 	tree, err := lib.TraverseTree(".")
 	if err != nil {
 		lib.HandleError("Error traversing tree: %s\n", err)
 	}
 	fmt.Printf("%x\n", tree)
+}
+
+func CloneRepository(args map[string]string) {
+	remoteURL := args["arg1"]
+	localPath := args["arg2"]
+
+	if localPath == "" {
+		localPath = filepath.Base(remoteURL)
+
+		if localPath[len(localPath)-4:] == ".git" {
+			localPath = localPath[:len(localPath)-4]
+		}
+	}
+
+	workingDir := os.Getenv("PWD")
+	localPath = filepath.Join(workingDir, localPath)
+
+	lib.CloneRepository(remoteURL, localPath)
 }

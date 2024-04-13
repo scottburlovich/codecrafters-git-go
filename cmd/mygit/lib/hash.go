@@ -7,13 +7,9 @@ import (
 	"os"
 )
 
-func HashBytes(b []byte) ([]byte, error) {
-	h := sha1.New()
-	_, err := h.Write(b)
-	if err != nil {
-		return nil, err
-	}
-	return h.Sum(nil), nil
+func HashBytes(b []byte) []byte {
+	hash := sha1.Sum(b)
+	return hash[:]
 }
 
 func HashFile(filePath string) ([]byte, error) {
@@ -35,4 +31,8 @@ func ValidateHash(hash string) error {
 		return fmt.Errorf("invalid hash: %s", hash)
 	}
 	return nil
+}
+
+func hexDump(b []byte) string {
+	return fmt.Sprintf("%x", b)
 }
